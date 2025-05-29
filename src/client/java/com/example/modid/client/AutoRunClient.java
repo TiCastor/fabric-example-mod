@@ -3,6 +3,7 @@ package com.example.modid.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
@@ -41,31 +42,49 @@ public class AutoRunClient implements ClientModInitializer {
             KeyBinding backKey = client.options.backKey;
             KeyBinding sprintKey = client.options.sprintKey;
 
-            // Toggle auto-run
+            // Toggle Auto-Run
             while (toggleAutoRunKey.wasPressed()) {
                 autoRunEnabled = !autoRunEnabled;
+
+                if (autoRunEnabled) {
+                    autoSprintEnabled = false;
+                    if (wasSimulatingSprint) {
+                        sprintKey.setPressed(false);
+                        wasSimulatingSprint = false;
+                    }
+                    client.player.sendMessage(Text.of("Auto-Run Enabled"), true);
+                } else {
+                    client.player.sendMessage(Text.of("Auto-Run Disabled"), true);
+                }
+
                 if (!autoRunEnabled && wasSimulatingForward) {
                     forwardKey.setPressed(false);
                     wasSimulatingForward = false;
                 }
-                client.player.sendMessage(
-                        Text.of(autoRunEnabled ? "Auto-Run Enabled" : "Auto-Run Disabled"), true
-                );
             }
 
-            // Toggle auto-sprint
+            // Toggle Auto-Sprint
             while (toggleAutoSprintKey.wasPressed()) {
                 autoSprintEnabled = !autoSprintEnabled;
+
+                if (autoSprintEnabled) {
+                    autoRunEnabled = false;
+                    if (wasSimulatingForward) {
+                        forwardKey.setPressed(false);
+                        wasSimulatingForward = false;
+                    }
+                    client.player.sendMessage(Text.of("Auto-Sprint Enabled"), true);
+                } else {
+                    client.player.sendMessage(Text.of("Auto-Sprint Disabled"), true);
+                }
+
                 if (!autoSprintEnabled && wasSimulatingSprint) {
                     sprintKey.setPressed(false);
                     wasSimulatingSprint = false;
                 }
-                client.player.sendMessage(
-                        Text.of(autoSprintEnabled ? "Auto-Sprint Enabled" : "Auto-Sprint Disabled"), true
-                );
             }
 
-            // Cancel both if back is pressed
+            // Cancel both if pressing back
             if ((autoRunEnabled || autoSprintEnabled) && backKey.isPressed()) {
                 if (autoRunEnabled) {
                     autoRunEnabled = false;
@@ -84,27 +103,38 @@ public class AutoRunClient implements ClientModInitializer {
                 client.player.sendMessage(Text.of("Auto-Movement Cancelled"), true);
             }
 
-            // Handle auto-run simulation
-            if (autoRunEnabled) {
+            // Handle Auto-Run
+            if (autoRunEnabled && !autoSprintEnabled) {
                 if (!forwardKey.isPressed()) {
                     forwardKey.setPressed(true);
                     wasSimulatingForward = true;
                 }
-            } else if (wasSimulatingForward) {
-                forwardKey.setPressed(false);
-                wasSimulatingForward = false;
             }
 
-            // Handle auto-sprint simulation
+            // Handle Auto-Sprint
             if (autoSprintEnabled) {
                 if (!sprintKey.isPressed()) {
                     sprintKey.setPressed(true);
                     wasSimulatingSprint = true;
                 }
-            } else if (wasSimulatingSprint) {
-                sprintKey.setPressed(false);
-                wasSimulatingSprint = false;
+                if (!forwardKey.isPressed()) {
+                    forwardKey.setPressed(true);
+                    wasSimulatingForward = true;
+                }
             }
+
+            // Reset keys when neither mode is active
+            if (!autoRunEnabled && !autoSprintEnabled) {
+                if (wasSimulatingForward) {
+                    forwardKey.setPressed(false);
+                    wasSimulatingForward = false;
+                }
+                if (wasSimulatingSprint) {
+                    sprintKey.setPressed(false);
+                    wasSimulatingSprint = false;
+                }
+            }
+
         });
     }
 }
