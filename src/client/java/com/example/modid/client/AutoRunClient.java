@@ -10,8 +10,13 @@ import org.lwjgl.glfw.GLFW;
 
 public class AutoRunClient implements ClientModInitializer {
     private static KeyBinding toggleAutoRunKey;
+    private static KeyBinding toggleAutoSprintKey;
+
     private static boolean autoRunEnabled = false;
+    private static boolean autoSprintEnabled = false;
+
     private static boolean wasSimulatingForward = false;
+    private static boolean wasSimulatingSprint = false;
 
     @Override
     public void onInitializeClient() {
@@ -22,50 +27,83 @@ public class AutoRunClient implements ClientModInitializer {
                 "category.modid.controls"
         ));
 
+        toggleAutoSprintKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.modid.autosprint",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G,
+                "category.modid.controls"
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.options == null) return;
 
             KeyBinding forwardKey = client.options.forwardKey;
             KeyBinding backKey = client.options.backKey;
+            KeyBinding sprintKey = client.options.sprintKey;
 
-            // Toggle auto-run with the hotkey
+            // Toggle auto-run
             while (toggleAutoRunKey.wasPressed()) {
                 autoRunEnabled = !autoRunEnabled;
-
                 if (!autoRunEnabled && wasSimulatingForward) {
-                    // We were simulating forward, so clear it
                     forwardKey.setPressed(false);
                     wasSimulatingForward = false;
                 }
-
                 client.player.sendMessage(
-                        Text.of(autoRunEnabled ? "Auto-Run Enabled" : "Auto-Run Disabled"),
-                        true
+                        Text.of(autoRunEnabled ? "Auto-Run Enabled" : "Auto-Run Disabled"), true
                 );
             }
 
-            // Cancel auto-run if player presses back
-            if (autoRunEnabled && backKey.isPressed()) {
-                autoRunEnabled = false;
-                if (wasSimulatingForward) {
-                    forwardKey.setPressed(false);
-                    wasSimulatingForward = false;
+            // Toggle auto-sprint
+            while (toggleAutoSprintKey.wasPressed()) {
+                autoSprintEnabled = !autoSprintEnabled;
+                if (!autoSprintEnabled && wasSimulatingSprint) {
+                    sprintKey.setPressed(false);
+                    wasSimulatingSprint = false;
                 }
-                client.player.sendMessage(Text.of("Auto-Run Cancelled"), true);
+                client.player.sendMessage(
+                        Text.of(autoSprintEnabled ? "Auto-Sprint Enabled" : "Auto-Sprint Disabled"), true
+                );
             }
 
-            // Simulate pressing forward if auto-run is on and player isn't pressing forward
+            // Cancel both if back is pressed
+            if ((autoRunEnabled || autoSprintEnabled) && backKey.isPressed()) {
+                if (autoRunEnabled) {
+                    autoRunEnabled = false;
+                    if (wasSimulatingForward) {
+                        forwardKey.setPressed(false);
+                        wasSimulatingForward = false;
+                    }
+                }
+                if (autoSprintEnabled) {
+                    autoSprintEnabled = false;
+                    if (wasSimulatingSprint) {
+                        sprintKey.setPressed(false);
+                        wasSimulatingSprint = false;
+                    }
+                }
+                client.player.sendMessage(Text.of("Auto-Movement Cancelled"), true);
+            }
+
+            // Handle auto-run simulation
             if (autoRunEnabled) {
                 if (!forwardKey.isPressed()) {
                     forwardKey.setPressed(true);
                     wasSimulatingForward = true;
                 }
-            } else {
-                // Make sure we clean up only our simulated key press
-                if (wasSimulatingForward) {
-                    forwardKey.setPressed(false);
-                    wasSimulatingForward = false;
+            } else if (wasSimulatingForward) {
+                forwardKey.setPressed(false);
+                wasSimulatingForward = false;
+            }
+
+            // Handle auto-sprint simulation
+            if (autoSprintEnabled) {
+                if (!sprintKey.isPressed()) {
+                    sprintKey.setPressed(true);
+                    wasSimulatingSprint = true;
                 }
+            } else if (wasSimulatingSprint) {
+                sprintKey.setPressed(false);
+                wasSimulatingSprint = false;
             }
         });
     }
