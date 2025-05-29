@@ -3,8 +3,10 @@ package com.example.modid.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+// import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 public class AutoRunClient implements ClientModInitializer {
@@ -13,30 +15,42 @@ public class AutoRunClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Register the keybinding
         toggleAutoRunKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.modid.autorun",  // translation key
+                "key.modid.autorun",
                 InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_R,      // Default key: R
-                "category.modid.controls"  // Translation key for category
+                GLFW.GLFW_KEY_R,
+                "category.modid.controls"
         ));
 
-        // Check for key press every tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null || client.options == null) return;
+
+            // Toggle auto-run on key press
             while (toggleAutoRunKey.wasPressed()) {
                 autoRunEnabled = !autoRunEnabled;
                 client.player.sendMessage(
-                    autoRunEnabled ? 
-                    net.minecraft.text.Text.of("Auto-Run Enabled") : 
-                    net.minecraft.text.Text.of("Auto-Run Disabled"), true);
+                        Text.of(autoRunEnabled ? "Auto-Run Enabled" : "Auto-Run Disabled"),
+                        true
+                );
             }
 
-            if (autoRunEnabled && client.player != null && client.currentScreen == null) {
-                client.options.forwardKey.setPressed(true);
+            // Cancel auto-run if player moves backward manually
+            if (autoRunEnabled && client.options.backKey.isPressed()) {
+                autoRunEnabled = false;
+                client.player.sendMessage(Text.of("Auto-Run Cancelled"), true);
+            }
+
+            // If auto-run is enabled and player isn't holding W, simulate forward movement
+            if (autoRunEnabled) {
+                if (!client.options.forwardKey.isPressed()) {
+                    client.options.forwardKey.setPressed(true);
+                }
             } else {
-                client.options.forwardKey.setPressed(false);
+                // If auto-run is off, don't force the key anymore
+                if (!client.options.forwardKey.isPressed()) {
+                    client.options.forwardKey.setPressed(false);
+                }
             }
         });
     }
 }
-// This code is a client-side mod for Minecraft using Fabric.
