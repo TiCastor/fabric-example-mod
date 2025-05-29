@@ -4,10 +4,10 @@ plugins {
 }
 
 version = "1.0.0"
-group = "com.example.autorunmod"
+group = "com.example.autorunmod" // Change this to your mod's group ID
 
 base {
-	archivesName = "autorunmod"
+	archivesName = "autorunmod-mc1.20.1"
 }
 
 repositories {
