@@ -22,17 +22,17 @@ public class AutoRunClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         toggleAutoRunKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.autorun.toggle", // translation key
+                "Toggle Auto-Run", // translation key
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_R,
-                "category.autorun"    // category in controls menu
+                "Auto-Movement"    // category in controls menu
         ));
 
         toggleAutoSprintKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.autosprint.toggle",
+                "Toggle Auto-Sprint",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
-                "category.autorun"
+                "Auto-Movement"
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -95,7 +95,7 @@ public class AutoRunClient implements ClientModInitializer {
                     wasSimulatingSprint = false;
                 }
 
-                client.player.sendMessage(Text.of("Auto movement stopped"), true);
+                client.player.sendMessage(Text.of("Auto-Movement stopped"), true);
             }
 
             // Auto-Run Logic
