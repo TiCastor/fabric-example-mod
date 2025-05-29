@@ -31,7 +31,13 @@ public class AutoRunClient implements ClientModInitializer {
             // Toggle auto-run with the hotkey
             while (toggleAutoRunKey.wasPressed()) {
                 autoRunEnabled = !autoRunEnabled;
-                wasSimulatingForward = false; // reset simulation state
+
+                if (!autoRunEnabled && wasSimulatingForward) {
+                    // We were simulating forward, so clear it
+                    forwardKey.setPressed(false);
+                    wasSimulatingForward = false;
+                }
+
                 client.player.sendMessage(
                         Text.of(autoRunEnabled ? "Auto-Run Enabled" : "Auto-Run Disabled"),
                         true
@@ -41,21 +47,25 @@ public class AutoRunClient implements ClientModInitializer {
             // Cancel auto-run if player presses back
             if (autoRunEnabled && backKey.isPressed()) {
                 autoRunEnabled = false;
-                wasSimulatingForward = false;
-                forwardKey.setPressed(false);
+                if (wasSimulatingForward) {
+                    forwardKey.setPressed(false);
+                    wasSimulatingForward = false;
+                }
                 client.player.sendMessage(Text.of("Auto-Run Cancelled"), true);
             }
 
-            // Simulate pressing forward if auto-run is on
+            // Simulate pressing forward if auto-run is on and player isn't pressing forward
             if (autoRunEnabled) {
                 if (!forwardKey.isPressed()) {
                     forwardKey.setPressed(true);
                     wasSimulatingForward = true;
                 }
-            } else if (wasSimulatingForward) {
-                // Only stop simulating if we were the ones simulating
-                forwardKey.setPressed(false);
-                wasSimulatingForward = false;
+            } else {
+                // Make sure we clean up only our simulated key press
+                if (wasSimulatingForward) {
+                    forwardKey.setPressed(false);
+                    wasSimulatingForward = false;
+                }
             }
         });
     }
